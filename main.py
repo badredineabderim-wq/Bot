@@ -198,12 +198,18 @@ async def stats(interaction: discord.Interaction, member: discord.Member = None)
     )
 
 @bot.tree.command(name="mute", description="Mute a member")
-@app_commands.describe(member="Member to mute", minutes="Duration in minutes")
 async def mute(interaction: discord.Interaction, member: discord.Member, minutes: int):
 
     if not interaction.user.guild_permissions.moderate_members:
         return await interaction.response.send_message(
             "❌ No permission",
+            ephemeral=True
+        )
+
+    # حماية الرتب
+    if member.top_role >= interaction.guild.me.top_role:
+        return await interaction.response.send_message(
+            "❌ لا أستطيع كتم عضو رتبته أعلى مني أو مساوية لي.",
             ephemeral=True
         )
 
