@@ -200,60 +200,24 @@ async def stats(interaction: discord.Interaction, member: discord.Member = None)
 @bot.tree.command(name="mute", description="Mute a member")
 async def mute(interaction: discord.Interaction, member: discord.Member, minutes: int):
 
-    if not interaction.user.guild_permissions.moderate_members:
-        return await interaction.response.send_message(
-            "❌ No permission",
-            ephemeral=True
-        )
-@bot.tree.command(name="unmute", description="Unmute a member")
-async def unmute(interaction: discord.Interaction, member: discord.Member):
-
     # صلاحية المستخدم
     if not interaction.user.guild_permissions.moderate_members:
         return await interaction.response.send_message(
-            "❌ ماعندي صلاحية (Moderate Members)",
+            "❌ ماعندك صلاحية (Moderate Members)",
             ephemeral=True
         )
 
     # صلاحية البوت
     if not interaction.guild.me.guild_permissions.moderate_members:
         return await interaction.response.send_message(
-            "❌ ماعندي صلاحية إزالة الكتم",
+            "❌ ماعندي صلاحية الميوت",
             ephemeral=True
         )
 
     # حماية الرتب
     if member.top_role >= interaction.guild.me.top_role:
         return await interaction.response.send_message(
-            "❌ ما أقدر أتعامل مع هذا العضو (رتبته أعلى أو مساوية لي)",
-            ephemeral=True
-        )
-
-    try:
-        await member.timeout(
-            None,  # هذا يلغي الـ timeout (unmute)
-            reason=f"Unmuted by {interaction.user}"
-        )
-
-        await interaction.response.send_message(
-            f"🔊 تم إلغاء كتم {member.mention}"
-        )
-
-    except discord.Forbidden:
-        await interaction.response.send_message(
-            "❌ ماعندي صلاحية (Forbidden)",
-            ephemeral=True
-        )
-
-    except Exception:
-        await interaction.response.send_message(
-            "❌ صار خطأ غير متوقع",
-            ephemeral=True
-        )
-    # حماية الرتب
-    if member.top_role >= interaction.guild.me.top_role:
-        return await interaction.response.send_message(
-            "❌ لا أستطيع كتم عضو رتبته أعلى مني أو مساوية لي.",
+            "❌ ما أقدر أكتم عضو رتبته أعلى أو مساوية لي",
             ephemeral=True
         )
 
@@ -264,12 +228,18 @@ async def unmute(interaction: discord.Interaction, member: discord.Member):
         )
 
         await interaction.response.send_message(
-            f"🔇 {member.mention} muted for {minutes} minutes."
+            f"🔇 تم كتم {member.mention} لمدة {minutes} دقيقة"
+        )
+
+    except discord.Forbidden:
+        await interaction.response.send_message(
+            "❌ ما عندي صلاحية (Forbidden)",
+            ephemeral=True
         )
 
     except Exception as e:
         await interaction.response.send_message(
-            f"❌ Error: {e}",
+            f"❌ خطأ: {e}",
             ephemeral=True
         )
 # =========================
