@@ -4,6 +4,7 @@ import time
 import datetime
 from collections import defaultdict
 import os
+from discord import app_commands
 
 # ===== INTENTS =====
 intents = discord.Intents.all()
@@ -196,7 +197,31 @@ async def stats(interaction: discord.Interaction, member: discord.Member = None)
         f"📊 {member.mention} warnings: {warnings[member.id]}"
     )
 
+@bot.tree.command(name="mute", description="Mute a member")
+@app_commands.describe(member="Member to mute", minutes="Duration in minutes")
+async def mute(interaction: discord.Interaction, member: discord.Member, minutes: int):
 
+    if not interaction.user.guild_permissions.moderate_members:
+        return await interaction.response.send_message(
+            "❌ No permission",
+            ephemeral=True
+        )
+
+    try:
+        await member.timeout(
+            datetime.timedelta(minutes=minutes),
+            reason=f"Muted by {interaction.user}"
+        )
+
+        await interaction.response.send_message(
+            f"🔇 {member.mention} muted for {minutes} minutes."
+        )
+
+    except Exception as e:
+        await interaction.response.send_message(
+            f"❌ Error: {e}",
+            ephemeral=True
+        )
 # =========================
 # RUN
 # =========================
