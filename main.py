@@ -1,62 +1,111 @@
 import discord
 from discord.ext import commands
+import time
+from collections import defaultdict
+import os
 
-intents = discord.Intents.all()
+# ===== INTENTS =====
+intents = discord.Intents.default()
+intents.members = True
+intents.message_content = True
+
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# ===== SYSTEMS =====
+spam = defaultdict(list)
+joins = defaultdict(list)
 
+# ===== SETTINGS =====
+SPAM_LIMIT = 5
+SPAM_WINDOW = 5
+
+RAID_LIMIT = 5
+RAID_WINDOW = 10
+
+
+# ===== READY =====
 @bot.event
 async def on_ready():
+    await bot.tree.sync()
     print(f"Logged in as {bot.user}")
 
 
-# منع السبام البسيط
+# ===== ANTI-SPAM + ANTI-LINK =====
 @bot.event
 async def on_message(message):
     if message.author.bot:
         return
 
-    bad_words = ["spam", "hack", "raid"]
+    now = time.time()
+    uid = message.author.id
 
-    for word in bad_words:
-        if word in message.content.lower():
+    # ===== SPAM SYSTEM =====
+    spam[uid].append(now)
+    spam[uid] = [t for t in spam[uid] if now - t < SPAM_WINDOW]
+
+    if len(spam[uid]) > SPAM_LIMIT:
+        try:
             await message.delete()
-            await message.channel.send(f"{message.author.mention} لا تسوي سبام 🚫")
+            await message.channel.send(
+                f"🚫 {message.author.mention} لا تسوي سبام",
+                delete_after=3
+            )
+        except:
+            pass
+        return
+
+    # ===== LINK BLOCK =====
+    if "http" in message.content.lower():
+        if not message.author.guild_permissions.administrator:
+            try:
+                await message.delete()
+                await message.channel.send(
+                    "🚫 الروابط ممنوعة",
+                    delete_after=3
+                )
+            except:
+                pass
             return
 
     await bot.process_commands(message)
 
 
-# أمر بان
-@bot.command()
-@commands.has_permissions(ban_members=True)
-async def ban(ctx, member: discord.Member, *, reason=None):
-    await member.ban(reason=reason)
-    await ctx.send(f"Banned {member}")
+# ===== ANTI-RAID =====
+@bot.event
+async def on_member_join(member):
+    now = time.time()
+    gid = member.guild.id
+
+    joins[gid].append(now)
+    joins[gid] = [t for t in joins[gid] if now - t < RAID_WINDOW]
+
+    if len(joins[gid]) >= RAID_LIMIT:
+        channel = member.guild.system_channel
+        if channel:
+            await channel.send("🚨 Anti-Raid Activated!")
+
+        # optional: lock server channels (basic protection)
+        for channel in member.guild.text_channels:
+            try:
+                await channel.set_permissions(member.guild.default_role, send_messages=False)
+            except:
+                pass
 
 
-# أمر كيك
-@bot.command()
-@commands.has_permissions(kick_members=True)
-async def kick(ctx, member: discord.Member, *, reason=None):
-    await member.kick(reason=reason)
-    await ctx.send(f"Kicked {member}")
+# ===== SLASH COMMANDS =====
+@bot.tree.command(name="ping", description="Check bot latency")
+async def ping(interaction: discord.Interaction):
+    await interaction.response.send_message(f"Pong 🏓 {round(bot.latency * 1000)}ms")
 
 
-# أمر لوك
-@bot.command()
-@commands.has_permissions(manage_channels=True)
-async def lock(ctx):
-    await ctx.channel.set_permissions(ctx.guild.default_role, send_messages=False)
-    await ctx.send("🔒 تم قفل الشات")
+@bot.tree.command(name="help", description="Bot commands")
+async def help_cmd(interaction: discord.Interaction):
+    await interaction.response.send_message(
+        "🛡️ حماية البوت:\n"
+        "/ping - سرعة البوت\n"
+        "/help - الأوامر"
+    )
 
 
-# أمر فتح
-@bot.command()
-@commands.has_permissions(manage_channels=True)
-async def unlock(ctx):
-    await ctx.channel.set_permissions(ctx.guild.default_role, send_messages=True)
-    await ctx.send("🔓 تم فتح الشات")
-
-
-bot.run("MTQ1Nzc1NTc0MTg3OTI3MTY1NA.GplhIW.5e_8tNrZLpP3Gb9X5Gxs6sym7aj0a2fDcVLgI8")
+# ===== RUN BOT =====
+bot.run(os.getenv("TOKEN"))
