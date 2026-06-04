@@ -205,7 +205,51 @@ async def mute(interaction: discord.Interaction, member: discord.Member, minutes
             "❌ No permission",
             ephemeral=True
         )
+@bot.tree.command(name="unmute", description="Unmute a member")
+async def unmute(interaction: discord.Interaction, member: discord.Member):
 
+    # صلاحية المستخدم
+    if not interaction.user.guild_permissions.moderate_members:
+        return await interaction.response.send_message(
+            "❌ ماعندي صلاحية (Moderate Members)",
+            ephemeral=True
+        )
+
+    # صلاحية البوت
+    if not interaction.guild.me.guild_permissions.moderate_members:
+        return await interaction.response.send_message(
+            "❌ ماعندي صلاحية إزالة الكتم",
+            ephemeral=True
+        )
+
+    # حماية الرتب
+    if member.top_role >= interaction.guild.me.top_role:
+        return await interaction.response.send_message(
+            "❌ ما أقدر أتعامل مع هذا العضو (رتبته أعلى أو مساوية لي)",
+            ephemeral=True
+        )
+
+    try:
+        await member.timeout(
+            None,  # هذا يلغي الـ timeout (unmute)
+            reason=f"Unmuted by {interaction.user}"
+        )
+
+        await interaction.response.send_message(
+            f"🔊 تم إلغاء كتم {member.mention}"
+        )
+
+    except discord.Forbidden:
+        await interaction.response.send_message(
+            "❌ ماعندي صلاحية (Forbidden)",
+            ephemeral=True
+        )
+
+    except Exception:
+        await interaction.response.send_message(
+            "❌ صار خطأ غير متوقع",
+            ephemeral=True
+        )
     # حماية الرتب
     if member.top_role >= interaction.guild.me.top_role:
         return await interaction.response.send_message(
