@@ -1,21 +1,22 @@
 import discord
 from discord.ext import commands
 import time
+import datetime
 from collections import defaultdict
 import os
 
 # ===== INTENTS =====
-intents = discord.Intents.default()
-intents.members = True
-intents.message_content = True
-
+intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # ===== SYSTEMS =====
 spam = defaultdict(list)
 joins = defaultdict(list)
+warnings = defaultdict(int)
 
-# ===== SETTINGS =====
+# ===== CONFIG =====
+TOKEN = os.getenv("TOKEN")
+
 SPAM_LIMIT = 5
 SPAM_WINDOW = 5
 
@@ -30,14 +31,16 @@ async def on_ready():
     print(f"Logged in as {bot.user}")
 
 
-# ===== ANTI-SPAM + ANTI-LINK =====
+# =========================
+# 🛡️ MESSAGE PROTECTION
+# =========================
 @bot.event
 async def on_message(message):
     if message.author.bot:
         return
 
-    now = time.time()
     uid = message.author.id
+    now = time.time()
 
     # ===== SPAM SYSTEM =====
     spam[uid].append(now)
@@ -46,66 +49,137 @@ async def on_message(message):
     if len(spam[uid]) > SPAM_LIMIT:
         try:
             await message.delete()
-            await message.channel.send(
-                f"🚫 {message.author.mention} لا تسوي سبام",
-                delete_after=3
-            )
+            warnings[uid] += 1
+            await message.channel.send("🚫 Spam detected", delete_after=3)
         except:
             pass
         return
 
     # ===== LINK BLOCK =====
     if "http" in message.content.lower():
-        if not message.author.guild_permissions.administrator:
-            try:
-                await message.delete()
-                await message.channel.send(
-                    "🚫 الروابط ممنوعة",
-                    delete_after=3
-                )
-            except:
-                pass
-            return
+        try:
+            await message.delete()
+            warnings[uid] += 1
+            await message.channel.send("🚫 Links not allowed", delete_after=3)
+        except:
+            pass
+        return
+
+    # ===== WARN CHECK =====
+    if warnings[uid] >= 3:
+        try:
+            await message.author.timeout(
+                discord.utils.utcnow() + datetime.timedelta(minutes=10),
+                reason="Auto Moderation"
+            )
+            warnings[uid] = 0
+        except:
+            pass
 
     await bot.process_commands(message)
 
 
-# ===== ANTI-RAID =====
+# =========================
+# 🚨 RAID PROTECTION (FIXED)
+# =========================
 @bot.event
 async def on_member_join(member):
-    now = time.time()
     gid = member.guild.id
+    now = time.time()
 
     joins[gid].append(now)
     joins[gid] = [t for t in joins[gid] if now - t < RAID_WINDOW]
 
-    if len(joins[gid]) >= RAID_LIMIT:
-        channel = member.guild.system_channel
-        if channel:
-            await channel.send("🚨 Anti-Raid Activated!")
+    account_age = (discord.utils.utcnow() - member.created_at).days
 
-        # optional: lock server channels (basic protection)
-        for channel in member.guild.text_channels:
-            try:
-                await channel.set_permissions(member.guild.default_role, send_messages=False)
-            except:
-                pass
+    # FIXED: more stable logic
+    if len(joins[gid]) >= RAID_LIMIT and account_age < 3:
+        try:
+            channel = member.guild.system_channel
+            if channel:
+                await channel.send("🚨 RAID DETECTED - Protection Activated")
+        except:
+            pass
 
 
-# ===== SLASH COMMANDS =====
-@bot.tree.command(name="ping", description="Check bot latency")
+# =========================
+# 💀 ANTI NUKE (SAFE VERSION)
+# =========================
+@bot.event
+async def on_guild_channel_delete(channel):
+    try:
+        async for entry in channel.guild.audit_logs(limit=1):
+            user = entry.user
+
+            if user:
+                # prevent owner/admin issues
+                if user and user.id != channel.guild.owner_id and not user.guild_permissions.administrator:
+                    await user.ban(reason="Anti-Nuke Protection")
+    except:
+        pass
+
+
+# =========================
+# 🧱 ROLE DELETE PROTECTION
+# =========================
+@bot.event
+async def on_guild_role_delete(role):
+    try:
+        async for entry in role.guild.audit_logs(limit=1):
+            user = entry.user
+
+            if user:
+                if user != role.guild.owner and not user.guild_permissions.administrator:
+                    await user.ban(reason="Role Deletion Abuse")
+    except:
+        pass
+
+
+# =========================
+# 📦 CHANNEL CREATE ABUSE
+# =========================
+@bot.event
+async def on_guild_channel_create(channel):
+    try:
+        async for entry in channel.guild.audit_logs(limit=1):
+            user = entry.user
+
+            if user:
+                if user != channel.guild.owner and not user.guild_permissions.administrator:
+                    await user.ban(reason="Channel Spam Abuse")
+    except:
+        pass
+
+
+# =========================
+# ⚙️ SLASH COMMANDS
+# =========================
+@bot.tree.command(name="ping")
 async def ping(interaction: discord.Interaction):
-    await interaction.response.send_message(f"Pong 🏓 {round(bot.latency * 1000)}ms")
-
-
-@bot.tree.command(name="help", description="Bot commands")
-async def help_cmd(interaction: discord.Interaction):
     await interaction.response.send_message(
-        "🛡️ حماية البوت:\n"
-        "/ping - سرعة البوت\n"
-        "/help - الأوامر"
+        f"🏓 {round(bot.latency * 1000)}ms"
     )
 
 
-# ===== RUN BOT =====
-bot.run(os.getenv("TOKEN"))
+@bot.tree.command(name="warn")
+async def warn(interaction: discord.Interaction, member: discord.Member):
+    if not interaction.user.guild_permissions.kick_members:
+        return await interaction.response.send_message("No permission", ephemeral=True)
+
+    warnings[member.id] += 1
+    await interaction.response.send_message(f"Warned {member}")
+
+
+@bot.tree.command(name="clearwarns")
+async def clearwarns(interaction: discord.Interaction, member: discord.Member):
+    if not interaction.user.guild_permissions.administrator:
+        return await interaction.response.send_message("No permission", ephemeral=True)
+
+    warnings[member.id] = 0
+    await interaction.response.send_message("Warnings cleared")
+
+
+# =========================
+# RUN BOT
+# =========================
+bot.run(TOKEN)
