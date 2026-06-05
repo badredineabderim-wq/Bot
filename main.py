@@ -119,45 +119,36 @@ async def on_message(message):
     spam[uid] = [t for t in spam[uid] if now - t < SPAM_WINDOW]
 
     if len(spam[uid]) >= SPAM_LIMIT:
-    try:
-        await message.delete()
-        warnings[uid] += 1
-        await punish(message.author, message.channel)
-        await message.channel.send("🚫 Spam detected", delete_after=3)
-    except:
-        pass
-    return
+        try:
+            await message.delete()
+            warnings[uid] += 1
+            await punish(message.author, message.channel)
+            await message.channel.send("🚫 Spam detected", delete_after=3)
+        except:
+            pass
+        return
 
     # ===== LINKS =====
-if "http" in message.content.lower():
-    try:
-        await message.delete()
-        warnings[uid] += 1
-        await punish(message.author, message.channel)
-    except:
-        pass
-    return
+    if "http" in message.content.lower():
+        try:
+            await message.delete()
+            warnings[uid] += 1
+            await punish(message.author, message.channel)
+        except:
+            pass
+        return
 
     # ===== CAPS =====
-if message.content.isupper() and len(message.content) > 5:
-    try:
-        await message.delete()
-        warnings[uid] += 1
-        await punish(message.author, message.channel)
-    except:
-        pass
-    return
+    if message.content.isupper() and len(message.content) > 5:
+        try:
+            await message.delete()
+            warnings[uid] += 1
+            await punish(message.author, message.channel)
+        except:
+            pass
+        return
 
-    # ===== MENTION SPAM (IMPROVED) =====
-if len(mentions[uid]) >= MENTION_LIMIT:
-    try:
-        await message.delete()
-        warnings[uid] += 1
-        await punish(message.author, message.channel)
-        await message.channel.send("🚫 Mention spam blocked", delete_after=3)
-    except:
-        pass
-    return
+    await bot.process_commands(message)
 
 # =========================
 # 💀 ANTI NUKE (SAFE)
@@ -306,8 +297,7 @@ async def unmute(interaction: discord.Interaction, member: discord.Member):
             "❌ ما عندي صلاحية (Forbidden)",
             ephemeral=True
         )
-
-    except Exception as e:
+        except Exception as e:
     await interaction.response.send_message(
         f"❌ خطأ: {e}",
         ephemeral=True
