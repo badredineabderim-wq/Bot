@@ -158,29 +158,6 @@ if len(mentions[uid]) >= MENTION_LIMIT:
     except:
         pass
     return
-    
-# =========================
-# 🚨 RAID PROTECTION (IMPROVED)
-# =========================
-@bot.event
-async def on_member_join(member):
-    gid = member.guild.id
-    now = time.time()
-
-    joins[gid].append(now)
-    joins[gid] = [t for t in joins[gid] if now - t < RAID_WINDOW]
-
-    account_age = (discord.utils.utcnow() - member.created_at).days
-
-    # صارم لكن آمن
-    if len(joins[gid]) >= RAID_LIMIT and account_age < 2:
-        try:
-            channel = member.guild.system_channel
-            if channel:
-                await channel.send("🚨 RAID DETECTED - Protection ON")
-        except:
-            pass
-
 
 # =========================
 # 💀 ANTI NUKE (SAFE)
@@ -335,31 +312,48 @@ async def unmute(interaction: discord.Interaction, member: discord.Member):
         f"❌ خطأ: {e}",
         ephemeral=True
     )
-    
-
-    @bot.event
+@bot.event
 async def on_member_join(member):
     guild = member.guild
+    now = time.time()
 
-    new_invites = await guild.invites()
-    old_invites = invites_cache.get(guild.id, [])
+    # ===== RAID =====
+    joins[guild.id].append(now)
+    joins[guild.id] = [t for t in joins[guild.id] if now - t < RAID_WINDOW]
 
-    inviter = None
+    account_age = (discord.utils.utcnow() - member.created_at).days
 
-    for new in new_invites:
-        for old in old_invites:
-            if new.code == old.code and new.uses > old.uses:
-                inviter = new.inviter
-                break
+    if len(joins[guild.id]) >= RAID_LIMIT and account_age < 2:
+        if guild.system_channel:
+            await guild.system_channel.send("🚨 RAID DETECTED")
 
-    invites_cache[guild.id] = new_invites
+    # ===== INVITE =====
+    try:
+        new_invites = await guild.invites()
+        old_invites = invites_cache.get(guild.id, [])
 
-    channel = guild.system_channel
-    if channel:
-        if inviter:
-            await channel.send(f"📥 {member.name} دخل عن طريق دعوة {inviter.name}")
-        else:
-            await channel.send(f"📥 {member.name} دخل بدون دعوة معروفة")
+        inviter = None
+
+        for new in new_invites:
+            for old in old_invites:
+                if new.code == old.code and new.uses > old.uses:
+                    inviter = new.inviter
+                    break
+
+        invites_cache[guild.id] = new_invites
+
+        if guild.system_channel:
+            if inviter:
+                await guild.system_channel.send(
+                    f"📥 {member.name} دخل عن طريق {inviter.name}"
+                )
+            else:
+                await guild.system_channel.send(
+                    f"📥 {member.name} دخل بدون دعوة"
+                )
+    except:
+        pass
+
 # =========================
 # RUN
 # =========================
