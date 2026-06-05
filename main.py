@@ -150,10 +150,18 @@ async def ping(interaction: discord.Interaction):
 
 @bot.tree.command(name="warn")
 async def warn(interaction: discord.Interaction, member: discord.Member):
+
     if not interaction.user.guild_permissions.kick_members:
         return await interaction.response.send_message("No permission", ephemeral=True)
 
     warnings[member.id] += 1
+
+    await interaction.response.send_message(
+        f"⚠️ تم إعطاء ورن لـ {member.mention}\n"
+        f"📊 المجموع: {warnings[member.id]}")
+    
+    warnings[member.id] += 1
+    
     await interaction.response.send_message(f"⚠️ Warned {member.mention}")
 
 @bot.tree.command(name="clearwarns")
