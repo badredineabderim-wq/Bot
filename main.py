@@ -25,6 +25,7 @@ log_channel_id = 1496559896273879140
 # PUNISH SYSTEM
 # =========================
 async def punish(member):
+    print("WARN =", warnings[member.id])
     level = warnings[member.id]
     channel = bot.get_channel(log_channel_id)
 
