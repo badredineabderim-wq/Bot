@@ -130,6 +130,7 @@ async def on_message(message):
         except:
             pass
         return
+        
         # ===== MENTION SPAM =====
 if len(message.mentions) >= 4:
 
@@ -143,8 +144,7 @@ if len(message.mentions) >= 4:
 
         await message.channel.send(
             f"🚫 {message.author.mention} لا يسمح بالمنشن الجماعي",
-            delete_after=5
-        )
+            delete_after=3)
 
     except Exception as e:
         print(e)
