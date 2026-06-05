@@ -96,14 +96,30 @@ async def on_message(message):
             pass
         return
 
-    if "http" in message.content.lower():
-        try:
-            await message.delete()
-            warnings[uid] += 1
-            await punish(message.author)
-        except:
-            pass
+    # ===== DISCORD INVITES =====
+if (
+    "discord.gg/" in message.content.lower()
+    or "discord.com/invite/" in message.content.lower()
+):
+
+    # السماح للإدارة
+    if message.author.guild_permissions.administrator:
         return
+
+    try:
+        await message.delete()
+        warnings[uid] += 1
+        await punish(message.author)
+
+        await message.channel.send(
+            f"🚫 {message.author.mention} ممنوع نشر دعوات الديسكورد",
+            delete_after=5
+        )
+
+    except Exception as e:
+        print(e)
+
+    return
 
     if message.content.isupper() and len(message.content) > 5:
         try:
