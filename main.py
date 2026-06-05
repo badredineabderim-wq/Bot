@@ -131,7 +131,7 @@ async def on_message(message):
             pass
         return
         # ===== MENTION SPAM =====
-if len(message.mentions) >= 2:
+if len(message.mentions) >= 4:
 
     if message.author.guild_permissions.administrator:
         return
@@ -143,11 +143,14 @@ if len(message.mentions) >= 2:
 
         await message.channel.send(
             f"🚫 {message.author.mention} لا يسمح بالمنشن الجماعي",
-            delete_after=3)
+            delete_after=5
+        )
 
     except Exception as e:
         print(e)
-        return
+
+    return
+    
 
 # ===== DISCORD INVITES =====
     if (
