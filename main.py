@@ -5,7 +5,6 @@ import datetime
 from collections import defaultdict
 import os
 import asyncio
-from discord.ext import tasks
 
 # ===== INTENTS =====
 intents = discord.Intents.all()
@@ -16,6 +15,7 @@ spam = defaultdict(list)
 mentions = defaultdict(list)
 joins = defaultdict(list)
 warnings = defaultdict(int)
+
 invites_cache = {}
 
 TOKEN = os.getenv("TOKEN")
@@ -57,18 +57,6 @@ async def punish(member):
     except Exception as e:
         print(e)
 
-# ===== SETTINGS =====
-SPAM_LIMIT = 3
-SPAM_WINDOW = 3
-
-MENTION_LIMIT = 4
-MENTION_WINDOW = 5
-
-RAID_LIMIT = 5
-RAID_WINDOW = 8
-
-invites_cache = {}
-
 # =========================
 # READY
 # =========================
@@ -94,44 +82,35 @@ async def on_message(message):
     uid = message.author.id
     now = time.time()
 
-    # ===== SPAM =====
     spam[uid].append(now)
-    spam[uid] = [t for t in spam[uid] if now - t < SPAM_WINDOW]
+    spam[uid] = [t for t in spam[uid] if now - t < 3]
 
-    if len(spam[uid]) >= SPAM_LIMIT:
+    if len(spam[uid]) >= 3:
         try:
             await message.delete()
             warnings[uid] += 1
             await punish(message.author)
             await message.channel.send("🚫 Spam detected", delete_after=3)
-
-        except Exception as e:
-            print(e)
-
+        except:
+            pass
         return
 
-    # ===== LINKS =====
     if "http" in message.content.lower():
         try:
             await message.delete()
             warnings[uid] += 1
             await punish(message.author)
-
-        except Exception as e:
-            print(e)
-
+        except:
+            pass
         return
 
-    # ===== CAPS =====
     if message.content.isupper() and len(message.content) > 5:
         try:
             await message.delete()
             warnings[uid] += 1
             await punish(message.author)
-
-        except Exception as e:
-            print(e)
-
+        except:
+            pass
         return
 
     await bot.process_commands(message)
@@ -147,10 +126,8 @@ async def on_guild_channel_delete(channel):
 
             if user and user != channel.guild.owner and not user.guild_permissions.administrator:
                 await user.ban(reason="Anti-Nuke")
-
     except Exception as e:
         print(e)
-
 
 @bot.event
 async def on_guild_role_delete(role):
@@ -160,7 +137,6 @@ async def on_guild_role_delete(role):
 
             if user and user != role.guild.owner and not user.guild_permissions.administrator:
                 await user.ban(reason="Role Abuse")
-
     except Exception as e:
         print(e)
 
@@ -171,7 +147,6 @@ async def on_guild_role_delete(role):
 async def ping(interaction: discord.Interaction):
     await interaction.response.send_message(f"🏓 {round(bot.latency * 1000)}ms")
 
-
 @bot.tree.command(name="warn")
 async def warn(interaction: discord.Interaction, member: discord.Member):
     if not interaction.user.guild_permissions.kick_members:
@@ -180,24 +155,21 @@ async def warn(interaction: discord.Interaction, member: discord.Member):
     warnings[member.id] += 1
     await interaction.response.send_message(f"⚠️ Warned {member.mention}")
 
-
 @bot.tree.command(name="clearwarns")
 async def clearwarns(interaction: discord.Interaction, member: discord.Member):
     if not interaction.user.guild_permissions.administrator:
         return await interaction.response.send_message("No permission", ephemeral=True)
 
     warnings[member.id] = 0
-    await interaction.response.send_message(f"🧹 Cleared warnings for {member.mention}")
-
+    await interaction.response.send_message(f"🧹 Cleared warnings")
 
 @bot.tree.command(name="stats")
 async def stats(interaction: discord.Interaction, member: discord.Member = None):
     member = member or interaction.user
-    await interaction.response.send_message(f"📊 {member.mention} warnings: {warnings[member.id]}")
-
+    await interaction.response.send_message(f"📊 {warnings[member.id]}")
 
 # =========================
-# MUTE / UNMUTE
+# MUTE / UNMUTE (FIXED)
 # =========================
 @bot.tree.command(name="mute")
 async def mute(interaction: discord.Interaction, member: discord.Member, minutes: int):
@@ -206,7 +178,7 @@ async def mute(interaction: discord.Interaction, member: discord.Member, minutes
         return await interaction.response.send_message("❌ No permission", ephemeral=True)
 
     if not interaction.guild.me.guild_permissions.moderate_members:
-        return await interaction.response.send_message("❌ Bot has no permission", ephemeral=True)
+        return await interaction.response.send_message("❌ Bot no permission", ephemeral=True)
 
     if member.top_role >= interaction.guild.me.top_role:
         return await interaction.response.send_message("❌ Role too high", ephemeral=True)
@@ -218,7 +190,6 @@ async def mute(interaction: discord.Interaction, member: discord.Member, minutes
     except Exception as e:
         await interaction.response.send_message(f"❌ {e}", ephemeral=True)
 
-
 @bot.tree.command(name="unmute")
 async def unmute(interaction: discord.Interaction, member: discord.Member):
 
@@ -226,13 +197,20 @@ async def unmute(interaction: discord.Interaction, member: discord.Member):
         return await interaction.response.send_message("❌ No permission", ephemeral=True)
 
     if not interaction.guild.me.guild_permissions.moderate_members:
-        return await interaction.response.send_message("❌ Bot has no permission", ephemeral=True)
+        return await interaction.response.send_message("❌ Bot no permission", ephemeral=True)
 
     if member.top_role >= interaction.guild.me.top_role:
         return await interaction.response.send_message("❌ Role too high", ephemeral=True)
-        
+
+    try:
+        await member.edit(timed_out_until=None)
+        await interaction.response.send_message(f"🔊 Unmuted {member.mention}")
+
+    except Exception as e:
+        await interaction.response.send_message(f"❌ {e}", ephemeral=True)
+
 # =========================
-# RAID + INVITES
+# RAID + INVITES (FIXED)
 # =========================
 @bot.event
 async def on_member_join(member):
@@ -240,41 +218,38 @@ async def on_member_join(member):
     now = time.time()
 
     joins[guild.id].append(now)
-    joins[guild.id] = [t for t in joins[guild.id] if now - t < RAID_WINDOW]
+    joins[guild.id] = [t for t in joins[guild.id] if now - t < 8]
 
-    if len(joins[guild.id]) >= RAID_LIMIT:
+    if len(joins[guild.id]) >= 5:
         if guild.system_channel:
             await guild.system_channel.send("🚨 RAID DETECTED")
 
     try:
-    invites_before = invites_cache.get(guild.id, {})
-    invites_after = await guild.invites()
+        new_invites = await guild.invites()
+        old_invites = invites_cache.get(guild.id, {})
 
-    inviter = None
+        inviter = None
 
-    for invite in invites_after:
-        before = invites_before.get(invite.code)
+        for invite in new_invites:
+            old_uses = old_invites.get(invite.code, 0)
 
-        if before and invite.uses > before:
-            inviter = invite.inviter
-            break
+            if invite.uses > old_uses:
+                inviter = invite.inviter
+                break
 
-    invites_cache[guild.id] = {
-        invite.code: invite.uses for invite in invites_after
-    }
+        invites_cache[guild.id] = {
+            i.code: i.uses for i in new_invites
+        }
 
-    if guild.system_channel:
-        if inviter:
-            await guild.system_channel.send(
-                f"📥 {member.name} دخل عن طريق {inviter.name}"
-            )
-        else:
-            await guild.system_channel.send(
-                f"📥 {member.name} دخل بدون دعوة"
-            )
+        if guild.system_channel:
+            if inviter:
+                await guild.system_channel.send(f"📥 {member.name} دخل عن طريق {inviter.name}")
+            else:
+                await guild.system_channel.send(f"📥 {member.name} دخل بدون دعوة")
 
-except Exception as e:
-    print(e)
+    except Exception as e:
+        print(e)
+
 # =========================
 # RUN
 # =========================
