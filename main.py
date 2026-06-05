@@ -96,30 +96,27 @@ async def on_message(message):
             pass
         return
 
-    # ===== DISCORD INVITES =====
-if (
-    "discord.gg/" in message.content.lower()
-    or "discord.com/invite/" in message.content.lower()
-):
+# ===== DISCORD INVITES =====
+    if (
+        "discord.gg/" in message.content.lower()
+        or "discord.com/invite/" in message.content.lower()):
 
-    # السماح للإدارة
-    if message.author.guild_permissions.administrator:
+        if message.author.guild_permissions.administrator:
+            return
+
+        try:
+            await message.delete()
+            warnings[uid] += 1
+            await punish(message.author)
+
+            await message.channel.send(
+                f"🚫 {message.author.mention} ممنوع نشر دعوات الديسكورد",
+                delete_after=5)
+
+        except Exception as e:
+            print(e)
+
         return
-
-    try:
-        await message.delete()
-        warnings[uid] += 1
-        await punish(message.author)
-
-        await message.channel.send(
-            f"🚫 {message.author.mention} ممنوع نشر دعوات الديسكورد",
-            delete_after=5
-        )
-
-    except Exception as e:
-        print(e)
-
-    return
 
     if message.content.isupper() and len(message.content) > 5:
         try:
