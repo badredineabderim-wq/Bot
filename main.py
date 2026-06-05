@@ -212,8 +212,7 @@ async def clearwarns(interaction: discord.Interaction, member: discord.Member):
 async def stats(interaction: discord.Interaction, member: discord.Member = None):
     member = member or interaction.user
     await interaction.response.send_message(
-        f"📊 {member.mention} warnings: {warnings[member.id]}"
-    )
+        f"📊 {member.mention} warnings: {warnings[member.id]}")
 
 @bot.tree.command(name="mute", description="Mute a member")
 async def mute(interaction: discord.Interaction, member: discord.Member, minutes: int):
@@ -222,44 +221,38 @@ async def mute(interaction: discord.Interaction, member: discord.Member, minutes
     if not interaction.user.guild_permissions.moderate_members:
         return await interaction.response.send_message(
             "❌ ماعندك صلاحية (Moderate Members)",
-            ephemeral=True
-        )
+            ephemeral=True) 
 
     # صلاحية البوت
     if not interaction.guild.me.guild_permissions.moderate_members:
         return await interaction.response.send_message(
             "❌ ماعندي صلاحية الميوت",
-            ephemeral=True
-        )
+            ephemeral=True)
 
     # حماية الرتب
     if member.top_role >= interaction.guild.me.top_role:
         return await interaction.response.send_message(
             "❌ ما أقدر أكتم عضو رتبته أعلى أو مساوية لي",
-            ephemeral=True
-        )
+            ephemeral=True)
 
     try:
         await member.timeout(
             datetime.timedelta(minutes=minutes),
-            reason=f"Muted by {interaction.user}"
-        )
+            reason=f"Muted by {interaction.user}")
 
         await interaction.response.send_message(
-            f"🔇 تم كتم {member.mention} لمدة {minutes} دقيقة"
-        )
+            f"🔇 تم كتم {member.mention} لمدة {minutes} دقيقة")
 
     except discord.Forbidden:
         await interaction.response.send_message(
             "❌ ما عندي صلاحية (Forbidden)",
-            ephemeral=True
-        )
+            ephemeral=True)
 
     except Exception as e:
         await interaction.response.send_message(
             f"❌ خطأ: {e}",
-            ephemeral=True
-        )
+            ephemeral=True)
+        
 @bot.tree.command(name="unmute", description="Unmute a member")
 async def unmute(interaction: discord.Interaction, member: discord.Member):
 
@@ -281,7 +274,6 @@ async def unmute(interaction: discord.Interaction, member: discord.Member):
 
     except Exception as e:
         await interaction.response.send_message(f"❌ خطأ: {e}", ephemeral=True)
-    
     
 @bot.event
 async def on_member_join(member):
@@ -316,12 +308,10 @@ async def on_member_join(member):
         if guild.system_channel:
             if inviter:
                 await guild.system_channel.send(
-                    f"📥 {member.name} دخل عن طريق {inviter.name}"
-                )
+                    f"📥 {member.name} دخل عن طريق {inviter.name}")
             else:
                 await guild.system_channel.send(
-                    f"📥 {member.name} دخل بدون دعوة"
-                )
+                    f"📥 {member.name} دخل بدون دعوة")
     except:
         pass
 
