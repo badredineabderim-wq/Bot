@@ -5,6 +5,7 @@ import datetime
 from collections import defaultdict
 import os
 import asyncio
+from discord.ext import tasks
 
 # ===== INTENTS =====
 intents = discord.Intents.all()
@@ -15,6 +16,7 @@ spam = defaultdict(list)
 mentions = defaultdict(list)
 joins = defaultdict(list)
 warnings = defaultdict(int)
+invites_cache = {}
 
 TOKEN = os.getenv("TOKEN")
 log_channel_id = 1496559896273879140
@@ -76,7 +78,10 @@ async def on_ready():
     print(f"Logged in as {bot.user}")
 
     for guild in bot.guilds:
-        invites_cache[guild.id] = await guild.invites()
+        try:
+            invites_cache[guild.id] = await guild.invites()
+        except:
+            invites_cache[guild.id] = {}
 
 # =========================
 # MESSAGE PROTECTION
@@ -225,14 +230,7 @@ async def unmute(interaction: discord.Interaction, member: discord.Member):
 
     if member.top_role >= interaction.guild.me.top_role:
         return await interaction.response.send_message("❌ Role too high", ephemeral=True)
-
-    try:
-        await member.edit(timed_out_until=None)
-        await interaction.response.send_message(f"🔊 Unmuted {member.mention}")
-
-    except Exception as e:
-        await interaction.response.send_message(f"❌ {e}", ephemeral=True)
-
+        
 # =========================
 # RAID + INVITES
 # =========================
@@ -249,28 +247,34 @@ async def on_member_join(member):
             await guild.system_channel.send("🚨 RAID DETECTED")
 
     try:
-        new_invites = await guild.invites()
-        old_invites = invites_cache.get(guild.id, [])
+    invites_before = invites_cache.get(guild.id, {})
+    invites_after = await guild.invites()
 
-        inviter = None
+    inviter = None
 
-        for invite in new_invites:
-            for old in old_invites:
-                if invite.code == old.code and invite.uses > old.uses:
-                    inviter = invite.inviter
-                    break
+    for invite in invites_after:
+        before = invites_before.get(invite.code)
 
-        invites_cache[guild.id] = new_invites
+        if before and invite.uses > before:
+            inviter = invite.inviter
+            break
 
-        if guild.system_channel:
-            if inviter:
-                await guild.system_channel.send(f"📥 Joined via {inviter.name}")
-            else:
-                await guild.system_channel.send("📥 Joined without invite")
+    invites_cache[guild.id] = {
+        invite.code: invite.uses for invite in invites_after
+    }
 
-    except Exception as e:
-        print(e)
+    if guild.system_channel:
+        if inviter:
+            await guild.system_channel.send(
+                f"📥 {member.name} دخل عن طريق {inviter.name}"
+            )
+        else:
+            await guild.system_channel.send(
+                f"📥 {member.name} دخل بدون دعوة"
+            )
 
+except Exception as e:
+    print(e)
 # =========================
 # RUN
 # =========================
