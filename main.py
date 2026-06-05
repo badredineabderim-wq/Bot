@@ -5,6 +5,7 @@ import datetime
 from collections import defaultdict
 import os
 from discord import app_commands
+import asyncio
 
 # ===== INTENTS =====
 intents = discord.Intents.all()
@@ -18,6 +19,56 @@ warnings = defaultdict(int)
 
 TOKEN = os.getenv("TOKEN")
 
+log_channel_id = 1496559896273879140
+
+async def punish(member, channel=None):
+    level = warnings[member.id]
+    
+    channel = member.guild.get_channel(log_channel_id)
+
+    try:
+        if level == 1:
+            if channel:
+                await channel.send(f"⚠️ {member.mention} تحذير (1)")
+
+        elif level == 2:
+            await member.timeout(
+                datetime.timedelta(minutes=10),
+                reason="AutoMod Level 2"
+            )
+
+        elif level == 3:
+            await member.timeout(
+                datetime.timedelta(minutes=30),
+                reason="AutoMod Level 3"
+            )
+
+        elif level == 4:
+            await member.timeout(
+                datetime.timedelta(hours=2),
+                reason="AutoMod Level 4"
+            )
+
+        elif level == 5:
+            await member.timeout(
+                datetime.timedelta(hours=4),
+                reason="AutoMod Level 5"
+            )
+
+        elif level == 6:
+            await member.timeout(
+                datetime.timedelta(hours=8),
+                reason="AutoMod Level 6"
+            )
+
+        elif level == 7:
+            await member.kick(reason="AutoMod Level 7")
+
+        elif level >= 8:
+            await member.ban(reason="AutoMod Level 8")
+
+    except Exception as e:
+        print(e)
 # ===== SETTINGS =====
 SPAM_LIMIT = 3
 SPAM_WINDOW = 3
@@ -28,6 +79,7 @@ MENTION_WINDOW = 5
 RAID_LIMIT = 5
 RAID_WINDOW = 8
 
+invites_cache = {}
 
 # =========================
 # READY
@@ -37,6 +89,19 @@ async def on_ready():
     await bot.tree.sync()
     print(f"Logged in as {bot.user}")
 
+    for guild in bot.guilds:
+        invites_cache[guild.id] = await guild.invites()
+
+    if not hasattr(bot, "reset_task_started"):
+        bot.loop.create_task(reset_warnings_task())
+        bot.reset_task_started = True
+
+async def reset_warnings_task():
+    await bot.wait_until_ready()
+    while not bot.is_closed():
+        warnings.clear()
+        print("🔄 Warnings reset")
+        await asyncio.sleep(86400)
 
 # =========================
 # 🛡️ MESSAGE PROTECTION
@@ -54,61 +119,46 @@ async def on_message(message):
     spam[uid] = [t for t in spam[uid] if now - t < SPAM_WINDOW]
 
     if len(spam[uid]) >= SPAM_LIMIT:
-        try:
-            await message.delete()
-            warnings[uid] += 1
-            await message.channel.send("🚫 Spam detected", delete_after=3)
-        except:
-            pass
-        return
+    try:
+        await message.delete()
+        warnings[uid] += 1
+        await punish(message.author, message.channel)
+        await message.channel.send("🚫 Spam detected", delete_after=3)
+    except:
+        pass
+    return
 
     # ===== LINKS =====
-    if "http" in message.content.lower():
-        try:
-            await message.delete()
-            warnings[uid] += 1
-        except:
-            pass
-        return
+if "http" in message.content.lower():
+    try:
+        await message.delete()
+        warnings[uid] += 1
+        await punish(message.author, message.channel)
+    except:
+        pass
+    return
 
     # ===== CAPS =====
-    if message.content.isupper() and len(message.content) > 5:
-        try:
-            await message.delete()
-            warnings[uid] += 1
-        except:
-            pass
-        return
+if message.content.isupper() and len(message.content) > 5:
+    try:
+        await message.delete()
+        warnings[uid] += 1
+        await punish(message.author, message.channel)
+    except:
+        pass
+    return
 
     # ===== MENTION SPAM (IMPROVED) =====
-    if len(message.mentions) >= 3 or len(message.role_mentions) >= 2:
-        mentions[uid].append(now)
-        mentions[uid] = [t for t in mentions[uid] if now - t < MENTION_WINDOW]
-
-        if len(mentions[uid]) >= MENTION_LIMIT:
-            try:
-                await message.delete()
-                warnings[uid] += 1
-                await message.channel.send("🚫 Mention spam blocked", delete_after=3)
-            except:
-                pass
-            return
-
-    # ===== WARN SYSTEM (FIXED) =====
-    if warnings[uid] >= 2:
-        try:
-            member = message.author
-            await member.timeout(
-                datetime.timedelta(minutes=15),
-                reason="Auto Moderation"
-            )
-            warnings[uid] = 0
-        except:
-            pass
-
-    await bot.process_commands(message)
-
-
+if len(mentions[uid]) >= MENTION_LIMIT:
+    try:
+        await message.delete()
+        warnings[uid] += 1
+        await punish(message.author, message.channel)
+        await message.channel.send("🚫 Mention spam blocked", delete_after=3)
+    except:
+        pass
+    return
+    
 # =========================
 # 🚨 RAID PROTECTION (IMPROVED)
 # =========================
@@ -281,10 +331,35 @@ async def unmute(interaction: discord.Interaction, member: discord.Member):
         )
 
     except Exception as e:
-        await interaction.response.send_message(
-            f"❌ خطأ: {e}",
-            ephemeral=True
-        )
+    await interaction.response.send_message(
+        f"❌ خطأ: {e}",
+        ephemeral=True
+    )
+    
+
+    @bot.event
+async def on_member_join(member):
+    guild = member.guild
+
+    new_invites = await guild.invites()
+    old_invites = invites_cache.get(guild.id, [])
+
+    inviter = None
+
+    for new in new_invites:
+        for old in old_invites:
+            if new.code == old.code and new.uses > old.uses:
+                inviter = new.inviter
+                break
+
+    invites_cache[guild.id] = new_invites
+
+    channel = guild.system_channel
+    if channel:
+        if inviter:
+            await channel.send(f"📥 {member.name} دخل عن طريق دعوة {inviter.name}")
+        else:
+            await channel.send(f"📥 {member.name} دخل بدون دعوة معروفة")
 # =========================
 # RUN
 # =========================
