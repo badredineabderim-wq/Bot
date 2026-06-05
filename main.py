@@ -291,17 +291,18 @@ async def unmute(interaction: discord.Interaction, member: discord.Member):
         await interaction.response.send_message(
             f"🔊 تم فك الميوت عن {member.mention}"
         )
-
-    except discord.Forbidden:
+except discord.Forbidden:
         await interaction.response.send_message(
             "❌ ما عندي صلاحية (Forbidden)",
             ephemeral=True
         )
-        except Exception as e:
-    await interaction.response.send_message(
-        f"❌ خطأ: {e}",
-        ephemeral=True
-    )
+
+    except Exception as e:
+        await interaction.response.send_message(
+            f"❌ خطأ: {e}",
+            ephemeral=True
+        )
+    
     
 @bot.event
 async def on_member_join(member):
