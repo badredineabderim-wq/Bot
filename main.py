@@ -124,8 +124,8 @@ async def on_message(message):
             warnings[uid] += 1
             await punish(message.author, message.channel)
             await message.channel.send("🚫 Spam detected", delete_after=3)
-        except:
-            pass
+        except Exception as e:
+    print(e)
         return
 
     # ===== LINKS =====
@@ -134,8 +134,8 @@ async def on_message(message):
             await message.delete()
             warnings[uid] += 1
             await punish(message.author, message.channel)
-        except:
-            pass
+        except Exception as e:
+    print(e)
         return
 
     # ===== CAPS =====
@@ -144,8 +144,8 @@ async def on_message(message):
             await message.delete()
             warnings[uid] += 1
             await punish(message.author, message.channel)
-        except:
-            pass
+        except Exception as e:
+    print(e)
         return
 
     await bot.process_commands(message)
@@ -161,8 +161,8 @@ async def on_guild_channel_delete(channel):
 
             if user and user != channel.guild.owner and not user.guild_permissions.administrator:
                 await user.ban(reason="Anti-Nuke Protection")
-    except:
-        pass
+    except Exception as e:
+    print(e)
 
 
 # =========================
@@ -176,8 +176,8 @@ async def on_guild_role_delete(role):
 
             if user and user != role.guild.owner and not user.guild_permissions.administrator:
                 await user.ban(reason="Role Abuse")
-    except:
-        pass
+    except Exception as e:
+    print(e)
 
 
 # =========================
@@ -312,8 +312,8 @@ async def on_member_join(member):
             else:
                 await guild.system_channel.send(
                     f"📥 {member.name} دخل بدون دعوة")
-    except:
-        pass
+    except Exception as e:
+    print(e)
 
 # =========================
 # RUN
