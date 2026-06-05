@@ -263,45 +263,24 @@ async def mute(interaction: discord.Interaction, member: discord.Member, minutes
 @bot.tree.command(name="unmute", description="Unmute a member")
 async def unmute(interaction: discord.Interaction, member: discord.Member):
 
-    # صلاحيات المستخدم
     if not interaction.user.guild_permissions.moderate_members:
-        return await interaction.response.send_message(
-            "❌ ماعندك صلاحية (Moderate Members)",
-            ephemeral=True
-        )
+        return await interaction.response.send_message("❌ ماعندك صلاحية", ephemeral=True)
 
-    # صلاحيات البوت
     if not interaction.guild.me.guild_permissions.moderate_members:
-        return await interaction.response.send_message(
-            "❌ ماعندي صلاحية إزالة الميوت",
-            ephemeral=True
-        )
+        return await interaction.response.send_message("❌ ماعندي صلاحية", ephemeral=True)
 
-    # حماية الرتب
     if member.top_role >= interaction.guild.me.top_role:
-        return await interaction.response.send_message(
-            "❌ ما أقدر أتعامل مع عضو رتبته أعلى أو مساوية لي",
-            ephemeral=True
-        )
+        return await interaction.response.send_message("❌ ما أقدر أتعامل مع رتب أعلى", ephemeral=True)
 
     try:
-        # الطريقة الصحيحة لفك الميوت
         await member.edit(timed_out_until=None)
+        await interaction.response.send_message(f"🔊 تم فك الميوت عن {member.mention}")
 
-        await interaction.response.send_message(
-            f"🔊 تم فك الميوت عن {member.mention}"
-        )
-except discord.Forbidden:
-        await interaction.response.send_message(
-            "❌ ما عندي صلاحية (Forbidden)",
-            ephemeral=True
-        )
+    except discord.Forbidden:
+        await interaction.response.send_message("❌ ما عندي صلاحية (Forbidden)", ephemeral=True)
 
     except Exception as e:
-        await interaction.response.send_message(
-            f"❌ خطأ: {e}",
-            ephemeral=True
-        )
+        await interaction.response.send_message(f"❌ خطأ: {e}", ephemeral=True)
     
     
 @bot.event
