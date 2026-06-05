@@ -130,7 +130,7 @@ async def on_message(message):
             pass
         return
         
-if len(message.mentions) >= 4:
+       if len(message.mentions) >= 4:
 
     if message.author.guild_permissions.administrator:
         return
@@ -220,14 +220,15 @@ async def ping(interaction: discord.Interaction):
 
     if not interaction.user.guild_permissions.kick_members:
         return await interaction.response.send_message("No permission", ephemeral=True)
-
+        
 @bot.tree.command(name="warn")
 async def warn(interaction: discord.Interaction, member: discord.Member):
 
     if not interaction.user.guild_permissions.kick_members:
         return await interaction.response.send_message("No permission", ephemeral=True)
 
-    warnings[member.id]["count"] += 1
+    warnings[member.id]["count"] = warnings[member.id].get("count", 0) + 1
+    warnings[member.id]["reason"] = "Manual Warn"
     warnings[member.id]["reason"] = "Manual Warn"
 
     await interaction.response.send_message(
@@ -249,7 +250,8 @@ async def stats(interaction: discord.Interaction, member: discord.Member = None)
 
     await interaction.response.send_message(
         f"📊 العضو: {member.mention}\n"
-        f"⚠️ عدد التحذيرات: {warnings[member.id]}")
+        f"⚠️ عدد التحذيرات: count = warnings[member.id]["count"]
+reason = warnings[member.id]["reason"]
     
 # =========================
 # MUTE / UNMUTE (FIXED)
