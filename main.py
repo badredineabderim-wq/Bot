@@ -25,35 +25,70 @@ log_channel_id = 1496559896273879140
 # PUNISH SYSTEM
 # =========================
 async def punish(member):
-    print("WARN =", warnings[member.id])
     level = warnings[member.id]
-    channel = bot.get_channel(log_channel_id)
+    channel = bot.get_channel(1496559896273879140)
 
     try:
+        punishment = "لا يوجد"
+
         if level == 1:
-            if channel:
-                await channel.send(f"⚠️ {member.mention} تحذير (1)")
+            punishment = "⚠️ تحذير فقط"
 
         elif level == 2:
-            await member.timeout(datetime.timedelta(minutes=10), reason="AutoMod Level 2")
+            await member.timeout(
+                datetime.timedelta(minutes=10),
+                reason="AutoMod Level 2"
+            )
+            punishment = "🔇 ميوت 10 دقائق"
 
         elif level == 3:
-            await member.timeout(datetime.timedelta(minutes=30), reason="AutoMod Level 3")
+            await member.timeout(
+                datetime.timedelta(minutes=30),
+                reason="AutoMod Level 3"
+            )
+            punishment = "🔇 ميوت 30 دقيقة"
 
         elif level == 4:
-            await member.timeout(datetime.timedelta(hours=2), reason="AutoMod Level 4")
+            await member.timeout(
+                datetime.timedelta(hours=2),
+                reason="AutoMod Level 4"
+            )
+            punishment = "🔇 ميوت ساعتين"
 
         elif level == 5:
-            await member.timeout(datetime.timedelta(hours=4), reason="AutoMod Level 5")
+            await member.timeout(
+                datetime.timedelta(hours=4),
+                reason="AutoMod Level 5"
+            )
+            punishment = "🔇 ميوت 4 ساعات"
 
         elif level == 6:
-            await member.timeout(datetime.timedelta(hours=8), reason="AutoMod Level 6")
+            await member.timeout(
+                datetime.timedelta(hours=8),
+                reason="AutoMod Level 6"
+            )
+            punishment = "🔇 ميوت 8 ساعات"
 
         elif level == 7:
             await member.kick(reason="AutoMod Level 7")
+            punishment = "👢 طرد"
 
         elif level >= 8:
             await member.ban(reason="AutoMod Level 8")
+            punishment = "🔨 باند"
+
+        if channel:
+            await channel.send(
+                f"⚠️ العضو: {member.mention}\n"
+                f"📊 عدد التحذيرات: {level}\n"
+                f"📌 العقوبة: {punishment}"
+            )
+
+    except discord.Forbidden:
+        if channel:
+            await channel.send(
+                f"❌ ما أقدر أعاقب {member.mention} بسبب الصلاحيات"
+            )
 
     except Exception as e:
         print(e)
