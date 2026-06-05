@@ -121,7 +121,7 @@ async def on_message(message):
     spam[uid].append(now)
     spam[uid] = [t for t in spam[uid] if now - t < 3]
 
-    if len(spam[uid]) >= 3:
+    if len(spam[uid]) >= 2:
         try:
             await message.delete()
             warnings[uid] += 1
@@ -129,6 +129,24 @@ async def on_message(message):
             await message.channel.send("🚫 Spam detected", delete_after=3)
         except:
             pass
+        return
+        # ===== MENTION SPAM =====
+if len(message.mentions) >= 2:
+
+    if message.author.guild_permissions.administrator:
+        return
+
+    try:
+        await message.delete()
+        warnings[message.author.id] += 1
+        await punish(message.author)
+
+        await message.channel.send(
+            f"🚫 {message.author.mention} لا يسمح بالمنشن الجماعي",
+            delete_after=3)
+
+    except Exception as e:
+        print(e)
         return
 
 # ===== DISCORD INVITES =====
