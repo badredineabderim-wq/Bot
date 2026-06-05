@@ -129,32 +129,34 @@ async def on_message(message):
         except:
             pass
         return
-        
-       if len(message.mentions) >= 4:
 
-    if message.author.guild_permissions.administrator:
+    # ===== MENTION SPAM =====
+    if len(message.mentions) >= 4:
+
+        if message.author.guild_permissions.administrator:
+            return
+
+        try:
+            await message.delete()
+            warnings[message.author.id]["count"] += 1
+            warnings[message.author.id]["reason"] = "Mention Spam"
+            await punish(message.author)
+
+            await message.channel.send(
+                f"🚫 {message.author.mention} لا يسمح بالمنشن الجماعي",
+                delete_after=3
+            )
+
+        except Exception as e:
+            print(e)
+
         return
 
-    try:
-        await message.delete()
-        warnings[message.author.id]["count"] += 1
-        warnings[message.author.id]["reason"] = "Mention Spam"
-        await punish(message.author)
-
-        await message.channel.send(
-            f"🚫 {message.author.mention} لا يسمح بالمنشن الجماعي",
-            delete_after=3
-        )
-
-    except Exception as e:
-        print(e)
-
-    return
-
-# ===== DISCORD INVITES =====
+    # ===== INVITES =====
     if (
         "discord.gg/" in message.content.lower()
-        or "discord.com/invite/" in message.content.lower()):
+        or "discord.com/invite/" in message.content.lower()
+    ):
 
         if message.author.guild_permissions.administrator:
             return
@@ -167,7 +169,8 @@ async def on_message(message):
 
             await message.channel.send(
                 f"🚫 {message.author.mention} ممنوع نشر دعوات الديسكورد",
-                delete_after=5)
+                delete_after=5
+            )
 
         except Exception as e:
             print(e)
@@ -185,7 +188,7 @@ async def on_message(message):
         return
 
     await bot.process_commands(message)
-
+    
 # =========================
 # ANTI NUKE
 # =========================
@@ -216,11 +219,12 @@ async def on_guild_role_delete(role):
 # =========================
 @bot.tree.command(name="ping")
 async def ping(interaction: discord.Interaction):
-    await interaction.response.send_message(f"🏓 {round(bot.latency * 1000)}ms")
 
     if not interaction.user.guild_permissions.kick_members:
         return await interaction.response.send_message("No permission", ephemeral=True)
-        
+
+    await interaction.response.send_message(f"🏓 {round(bot.latency * 1000)}ms")
+    
 @bot.tree.command(name="warn")
 async def warn(interaction: discord.Interaction, member: discord.Member):
 
@@ -248,10 +252,12 @@ async def stats(interaction: discord.Interaction, member: discord.Member = None)
 
     member = member or interaction.user
 
+    data = warnings[member.id]
+
     await interaction.response.send_message(
         f"📊 العضو: {member.mention}\n"
-        f"⚠️ عدد التحذيرات: count = warnings[member.id]["count"]
-reason = warnings[member.id]["reason"]
+        f"⚠️ التحذيرات: {data['count']}\n"
+        f"📌 السبب: {data['reason']}")
     
 # =========================
 # MUTE / UNMUTE (FIXED)
