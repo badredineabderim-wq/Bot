@@ -14,7 +14,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 spam = defaultdict(list)
 mentions = defaultdict(list)
 joins = defaultdict(list)
-warnings = defaultdict(int)
+warnings = defaultdict(lambda: {"count": 0, "reason": "لا يوجد"})
 
 invites_cache = {}
 
@@ -124,14 +124,15 @@ async def on_message(message):
     if len(spam[uid]) >= 2:
         try:
             await message.delete()
-            warnings[uid] += 1
+            warnings[uid]["count"] += 1
+warnings[uid]["reason"] = "Auto Moderation"
             await punish(message.author)
             await message.channel.send("🚫 Spam detected", delete_after=3)
         except:
             pass
         return
         
-        # ===== MENTION SPAM =====
+# ===== MENTION SPAM =====
 if len(message.mentions) >= 4:
 
     if message.author.guild_permissions.administrator:
@@ -139,7 +140,8 @@ if len(message.mentions) >= 4:
 
     try:
         await message.delete()
-        warnings[message.author.id] += 1
+        warnings[uid]["count"] += 1
+warnings[uid]["reason"] = "Auto Moderation"
         await punish(message.author)
 
         await message.channel.send(
@@ -150,7 +152,6 @@ if len(message.mentions) >= 4:
         print(e)
 
     return
-    
 
 # ===== DISCORD INVITES =====
     if (
@@ -162,7 +163,8 @@ if len(message.mentions) >= 4:
 
         try:
             await message.delete()
-            warnings[uid] += 1
+            warnings[uid]["count"] += 1
+warnings[uid]["reason"] = "Auto Moderation"
             await punish(message.author)
 
             await message.channel.send(
@@ -177,7 +179,8 @@ if len(message.mentions) >= 4:
     if message.content.isupper() and len(message.content) > 5:
         try:
             await message.delete()
-            warnings[uid] += 1
+            warnings[uid]["count"] += 1
+warnings[uid]["reason"] = "Auto Moderation"
             await punish(message.author)
         except:
             pass
@@ -223,13 +226,13 @@ async def warn(interaction: discord.Interaction, member: discord.Member):
     if not interaction.user.guild_permissions.kick_members:
         return await interaction.response.send_message("No permission", ephemeral=True)
 
-    warnings[member.id] += 1
+    warnings[uid]["count"] += 1
+warnings[uid]["reason"] = "Auto Moderation"
 
     await interaction.response.send_message(
         f"⚠️ تم إعطاء ورن لـ {member.mention}\n"
         f"📊 المجموع: {warnings[member.id]}")
     
-    warnings[member.id] += 1
     
     await interaction.response.send_message(f"⚠️ Warned {member.mention}")
 
@@ -243,9 +246,13 @@ async def clearwarns(interaction: discord.Interaction, member: discord.Member):
 
 @bot.tree.command(name="stats")
 async def stats(interaction: discord.Interaction, member: discord.Member = None):
-    member = member or interaction.user
-    await interaction.response.send_message(f"📊 {warnings[member.id]}")
 
+    member = member or interaction.user
+
+    await interaction.response.send_message(
+        f"📊 العضو: {member.mention}\n"
+        f"⚠️ عدد التحذيرات: {warnings[member.id]}")
+    
 # =========================
 # MUTE / UNMUTE (FIXED)
 # =========================
