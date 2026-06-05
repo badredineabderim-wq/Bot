@@ -37,36 +37,36 @@ async def punish(member):
         elif level == 2:
             await member.timeout(
                 datetime.timedelta(minutes=10),
-                reason="AutoMod Level 2"
-            )
+                reason="AutoMod Level 2")
+            
             punishment = "🔇 ميوت 10 دقائق"
 
         elif level == 3:
             await member.timeout(
                 datetime.timedelta(minutes=30),
-                reason="AutoMod Level 3"
-            )
+                reason="AutoMod Level 3")
+            
             punishment = "🔇 ميوت 30 دقيقة"
 
         elif level == 4:
             await member.timeout(
                 datetime.timedelta(hours=2),
-                reason="AutoMod Level 4"
-            )
+                reason="AutoMod Level 4")
+            
             punishment = "🔇 ميوت ساعتين"
 
         elif level == 5:
             await member.timeout(
                 datetime.timedelta(hours=4),
-                reason="AutoMod Level 5"
-            )
+                reason="AutoMod Level 5")
+            
             punishment = "🔇 ميوت 4 ساعات"
 
         elif level == 6:
             await member.timeout(
                 datetime.timedelta(hours=8),
-                reason="AutoMod Level 6"
-            )
+                reason="AutoMod Level 6")
+            
             punishment = "🔇 ميوت 8 ساعات"
 
         elif level == 7:
@@ -81,14 +81,12 @@ async def punish(member):
             await channel.send(
                 f"⚠️ العضو: {member.mention}\n"
                 f"📊 عدد التحذيرات: {level}\n"
-                f"📌 العقوبة: {punishment}"
-            )
+                f"📌 العقوبة: {punishment}")
 
     except discord.Forbidden:
         if channel:
             await channel.send(
-                f"❌ ما أقدر أعاقب {member.mention} بسبب الصلاحيات"
-            )
+                f"❌ ما أقدر أعاقب {member.mention} بسبب الصلاحيات")
 
     except Exception as e:
         print(e)
@@ -125,14 +123,13 @@ async def on_message(message):
         try:
             await message.delete()
             warnings[uid]["count"] += 1
-warnings[uid]["reason"] = "Auto Moderation"
+            warnings[uid]["reason"] = "Auto Moderation"
             await punish(message.author)
             await message.channel.send("🚫 Spam detected", delete_after=3)
         except:
             pass
         return
         
-# ===== MENTION SPAM =====
 if len(message.mentions) >= 4:
 
     if message.author.guild_permissions.administrator:
@@ -140,13 +137,14 @@ if len(message.mentions) >= 4:
 
     try:
         await message.delete()
-        warnings[uid]["count"] += 1
-warnings[uid]["reason"] = "Auto Moderation"
+        warnings[message.author.id]["count"] += 1
+        warnings[message.author.id]["reason"] = "Mention Spam"
         await punish(message.author)
 
         await message.channel.send(
             f"🚫 {message.author.mention} لا يسمح بالمنشن الجماعي",
-            delete_after=3)
+            delete_after=3
+        )
 
     except Exception as e:
         print(e)
@@ -164,7 +162,7 @@ warnings[uid]["reason"] = "Auto Moderation"
         try:
             await message.delete()
             warnings[uid]["count"] += 1
-warnings[uid]["reason"] = "Auto Moderation"
+            warnings[uid]["reason"] = "Auto Moderation"
             await punish(message.author)
 
             await message.channel.send(
@@ -180,7 +178,7 @@ warnings[uid]["reason"] = "Auto Moderation"
         try:
             await message.delete()
             warnings[uid]["count"] += 1
-warnings[uid]["reason"] = "Auto Moderation"
+            warnings[uid]["reason"] = "Auto Moderation"
             await punish(message.author)
         except:
             pass
@@ -220,21 +218,21 @@ async def on_guild_role_delete(role):
 async def ping(interaction: discord.Interaction):
     await interaction.response.send_message(f"🏓 {round(bot.latency * 1000)}ms")
 
+    if not interaction.user.guild_permissions.kick_members:
+        return await interaction.response.send_message("No permission", ephemeral=True)
+
 @bot.tree.command(name="warn")
 async def warn(interaction: discord.Interaction, member: discord.Member):
 
     if not interaction.user.guild_permissions.kick_members:
         return await interaction.response.send_message("No permission", ephemeral=True)
 
-    warnings[uid]["count"] += 1
-warnings[uid]["reason"] = "Auto Moderation"
+    warnings[member.id]["count"] += 1
+    warnings[member.id]["reason"] = "Manual Warn"
 
     await interaction.response.send_message(
         f"⚠️ تم إعطاء ورن لـ {member.mention}\n"
-        f"📊 المجموع: {warnings[member.id]}")
-    
-    
-    await interaction.response.send_message(f"⚠️ Warned {member.mention}")
+        f"📊 المجموع: {warnings[member.id]['count']}")
 
 @bot.tree.command(name="clearwarns")
 async def clearwarns(interaction: discord.Interaction, member: discord.Member):
