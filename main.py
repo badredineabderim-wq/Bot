@@ -126,10 +126,9 @@ async def on_message(message):
             await punish(message.author, message.channel)
             await message.channel.send("🚫 Spam detected", delete_after=3)
             
-        except Exception as e:
-    print(e)
-    
-        return
+    except Exception as e:
+        print(e)
+    return
 
     # ===== LINKS =====
     if "http" in message.content.lower():
@@ -138,10 +137,9 @@ async def on_message(message):
             warnings[uid] += 1
             await punish(message.author, message.channel)
             
-        except Exception as e:
-    print(e)
-
-        return
+    except Exception as e:
+        print(e)
+    return
 
     # ===== CAPS =====
     if message.content.isupper() and len(message.content) > 5:
@@ -150,10 +148,9 @@ async def on_message(message):
             warnings[uid] += 1
             await punish(message.author, message.channel)
             
-        except Exception as e:
-    print(e)
-
-        return
+    except Exception as e:
+        print(e)
+    return
 
     await bot.process_commands(message)
 
@@ -170,7 +167,7 @@ async def on_guild_channel_delete(channel):
                 await user.ban(reason="Anti-Nuke Protection")
                 
     except Exception as e:
-    print(e)
+        print(e)
 
 
 # =========================
@@ -186,7 +183,7 @@ async def on_guild_role_delete(role):
                 await user.ban(reason="Role Abuse")
                 
     except Exception as e:
-    print(e)
+        print(e)
 
 
 # =========================
@@ -323,7 +320,7 @@ async def on_member_join(member):
                     f"📥 {member.name} دخل بدون دعوة")
                 
     except Exception as e:
-    print(e)
+        print(e)
 
 # =========================
 # RUN
