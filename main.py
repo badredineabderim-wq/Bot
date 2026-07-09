@@ -16,7 +16,6 @@ mentions = defaultdict(list)
 joins = defaultdict(list)
 warnings = defaultdict(lambda: {"count": 0, "reason": "لا يوجد"})
 
-invites_cache = {}
 
 TOKEN = os.getenv("TOKEN")
 log_channel_id = 1496559896273879140
@@ -98,13 +97,6 @@ async def punish(member):
 async def on_ready():
     await bot.tree.sync()
     print(f"Logged in as {bot.user}")
-
-    for guild in bot.guilds:
-        try:
-            invites_cache[guild.id] = await guild.invites()
-        except:
-            invites_cache[guild.id] = {}
-
 # =========================
 # MESSAGE PROTECTION
 # =========================
@@ -300,47 +292,6 @@ async def unmute(interaction: discord.Interaction, member: discord.Member):
 
     except Exception as e:
         await interaction.response.send_message(f"❌ {e}", ephemeral=True)
-
-# =========================
-# RAID + INVITES (FIXED)
-# =========================
-@bot.event
-async def on_member_join(member):
-    guild = member.guild
-    now = time.time()
-
-    joins[guild.id].append(now)
-    joins[guild.id] = [t for t in joins[guild.id] if now - t < 8]
-
-    if len(joins[guild.id]) >= 5:
-        if guild.system_channel:
-            await guild.system_channel.send("🚨 RAID DETECTED")
-
-    try:
-        new_invites = await guild.invites()
-        old_invites = invites_cache.get(guild.id, {})
-
-        inviter = None
-
-        for invite in new_invites:
-            old_uses = old_invites.get(invite.code, 0)
-
-            if invite.uses > old_uses:
-                inviter = invite.inviter
-                break
-
-        invites_cache[guild.id] = {
-            i.code: i.uses for i in new_invites
-        }
-
-        if guild.system_channel:
-            if inviter:
-                await guild.system_channel.send(f"📥 {member.name} دخل عن طريق {inviter.name}")
-            else:
-                await guild.system_channel.send(f"📥 {member.name} دخل بدون دعوة")
-
-    except Exception as e:
-        print(e)
 
 # =========================
 # RUN
