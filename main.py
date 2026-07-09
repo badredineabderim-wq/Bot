@@ -25,7 +25,7 @@ log_channel_id = 1496559896273879140
 # PUNISH SYSTEM
 # =========================
 async def punish(member):
-    level = warnings[member.id]
+    level = warnings[member.id]["count"]
     channel = bot.get_channel(1496559896273879140)
 
     try:
@@ -233,8 +233,7 @@ async def warn(interaction: discord.Interaction, member: discord.Member):
 
     warnings[member.id]["count"] = warnings[member.id].get("count", 0) + 1
     warnings[member.id]["reason"] = "Manual Warn"
-    warnings[member.id]["reason"] = "Manual Warn"
-
+    
     await interaction.response.send_message(
         f"⚠️ تم إعطاء ورن لـ {member.mention}\n"
         f"📊 المجموع: {warnings[member.id]['count']}")
@@ -244,7 +243,9 @@ async def clearwarns(interaction: discord.Interaction, member: discord.Member):
     if not interaction.user.guild_permissions.administrator:
         return await interaction.response.send_message("No permission", ephemeral=True)
 
-    warnings[member.id] = 0
+    warnings[member.id] = {
+    "count": 0,
+    "reason": "لا يوجد"}
     await interaction.response.send_message(f"🧹 Cleared warnings")
 
 @bot.tree.command(name="stats")
