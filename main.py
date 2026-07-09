@@ -94,19 +94,20 @@ async def punish(member):
 # READY
 # =========================
 @bot.event
-async def on_ready():
-    await bot.tree.sync()
-    print(f"Logged in as {bot.user}")
-# =========================
-# MESSAGE PROTECTION
-# =========================
-@bot.event
 async def on_message(message):
     if message.author.bot:
         return
 
+    if (
+        message.author.guild_permissions.administrator
+        or message.author.guild_permissions.manage_guild
+    ):
+        await bot.process_commands(message)
+        return
+
     uid = message.author.id
     now = time.time()
+
 
     spam[uid].append(now)
     spam[uid] = [t for t in spam[uid] if now - t < 3]
